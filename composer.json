@@ -1,0 +1,49 @@
+{
+    "name": "yared/laravel-smart-stripe",
+    "description": "Secure Stripe Payments for Laravel with Fraud Detection, Automatic Webhooks, Smart Checkout, and Payment Logging",
+    "version": "1.0.0",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "laravel",
+        "stripe",
+        "payments",
+        "fraud-detection",
+        "webhooks",
+        "checkout"
+    ],
+    "authors": [
+        {
+            "name": "Yared",
+            "email": "developer@example.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Yared\\SmartStripe\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Yared\\SmartStripe\\StripeServiceProvider"
+            ],
+            "aliases": {
+                "StripePay": "Yared\\SmartStripe\\Facades\\StripePay",
+                "StripeWebhook": "Yared\\SmartStripe\\Facades\\StripeWebhook"
+            }
+        }
+    },
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^10.0|^11.0|^12.0",
+        "illuminate/database": "^10.0|^11.0|^12.0",
+        "illuminate/http": "^10.0|^11.0|^12.0",
+        "illuminate/queue": "^10.0|^11.0|^12.0",
+        "stripe/stripe-php": "^14.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0"
+    },
+    "minimum-stability": "stable"
+}
