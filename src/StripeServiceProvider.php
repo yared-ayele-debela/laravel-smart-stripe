@@ -101,11 +101,6 @@ class StripeServiceProvider extends ServiceProvider
         $this->registerWebhookRoute();
         $this->registerWebhookListeners();
 
-        if ($this->app->runningInConsole()) {
-            $this->commands([
-                \Yared\SmartStripe\Commands\RetryFailedPaymentsCommand::class,
-            ]);
-        }
     }
 
     protected function registerWebhookRoute(): void

@@ -6,24 +6,19 @@ use Illuminate\Contracts\Foundation\Application;
 use Stripe\Checkout\Session;
 use Stripe\Stripe;
 
+/**
+ * One-time payment checkout. Flexible for hotel, ecommerce, donations, etc.
+ */
 class CheckoutBuilder
 {
     protected ?string $productName = null;
     protected ?int $price = null;
-    protected ?string $priceId = null;
     protected ?string $successUrl = null;
     protected ?string $cancelUrl = null;
     protected ?object $customer = null;
-    protected string $mode = 'payment';
-    protected ?string $planId = null;
     protected array $metadata = [];
     protected string $currency = 'usd';
-
-    public function setMode(string $mode): self
-    {
-        $this->mode = $mode;
-        return $this;
-    }
+    protected array $lineItems = [];
 
     public function __construct(protected Application $app)
     {
@@ -45,17 +40,12 @@ class CheckoutBuilder
         return $this;
     }
 
-    public function priceId(string $stripePriceId): self
+    /**
+     * Add multiple items (ecommerce cart). Each: ['name' => '...', 'price' => 1999, 'quantity' => 1]
+     */
+    public function items(array $items): self
     {
-        $this->priceId = $stripePriceId;
-        return $this;
-    }
-
-    public function plan(string $planId): self
-    {
-        $this->planId = $planId;
-        $this->priceId = $planId;
-        $this->mode = 'subscription';
+        $this->lineItems = $items;
         return $this;
     }
 
@@ -124,7 +114,7 @@ class CheckoutBuilder
         $cancelUrl = $this->cancelUrl ?: (config('stripe-smart.checkout.cancel_url') ?: url('/cancel'));
 
         $params = [
-            'mode' => $this->mode,
+            'mode' => 'payment',
             'line_items' => $lineItems,
             'success_url' => $successUrl,
             'cancel_url' => $cancelUrl,
@@ -142,18 +132,24 @@ class CheckoutBuilder
 
     protected function buildLineItems(): array
     {
-        if ($this->mode === 'subscription' && $this->priceId) {
-            return [[
-                'price' => $this->priceId,
-                'quantity' => 1,
-            ]];
-        }
-
-        if ($this->mode === 'subscription' && $this->planId) {
-            return [[
-                'price' => $this->planId,
-                'quantity' => 1,
-            ]];
+        if (!empty($this->lineItems)) {
+            return array_map(function ($item) {
+                $productData = ['name' => $item['name'] ?? 'Item'];
+                if (!empty($item['description'])) {
+                    $productData['description'] = $item['description'];
+                }
+                if (!empty($item['image'])) {
+                    $productData['images'] = [$item['image']];
+                }
+                return [
+                    'price_data' => [
+                        'currency' => $this->currency,
+                        'product_data' => $productData,
+                        'unit_amount' => $item['price'] ?? 0,
+                    ],
+                    'quantity' => $item['quantity'] ?? 1,
+                ];
+            }, $this->lineItems);
         }
 
         return [[

@@ -76,11 +76,6 @@ class WebhookHandler
             'payment_intent.payment_failed' => 'payment_failed',
             'charge.refunded' => 'refund_created',
             'charge.refund.updated' => 'refund_created',
-            'customer.subscription.created' => 'subscription_created',
-            'customer.subscription.updated' => 'subscription_updated',
-            'customer.subscription.deleted' => 'subscription_deleted',
-            'invoice.paid' => 'invoice_paid',
-            'invoice.payment_failed' => 'invoice_payment_failed',
         ];
 
         return $map[$type] ?? $type;

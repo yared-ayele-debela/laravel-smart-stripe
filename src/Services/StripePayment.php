@@ -212,28 +212,6 @@ class StripePayment
         return method_exists($metadata, 'toArray') ? $metadata->toArray() : [];
     }
 
-    public function subscribe(object $user): CheckoutBuilder
-    {
-        $builder = $this->app->make(CheckoutBuilder::class);
-        $builder->customer($user);
-        $builder->setMode('subscription');
-        return $builder;
-    }
-
-    public static function retryFailedPayments(): void
-    {
-        $stripe = new StripeClient(config('stripe-smart.secret_key'));
-        $invoices = $stripe->invoices->all(['status' => 'open', 'collection_method' => 'charge_automatically']);
-
-        foreach ($invoices->data as $invoice) {
-            try {
-                $stripe->invoices->pay($invoice->id);
-            } catch (\Throwable $e) {
-                // Log and continue
-            }
-        }
-    }
-
     public static function simulateSuccess(): array
     {
         return [
