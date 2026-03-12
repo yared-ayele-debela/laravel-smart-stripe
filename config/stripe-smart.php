@@ -77,6 +77,27 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Checkout Default URLs
+    |--------------------------------------------------------------------------
+    | Used when success/cancel URLs are not explicitly set
+    */
+    'checkout' => [
+        'success_url' => env('STRIPE_SUCCESS_URL'),
+        'cancel_url' => env('STRIPE_CANCEL_URL'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Payable Handlers (for checkout.session.completed webhook)
+    |--------------------------------------------------------------------------
+    | Map metadata keys to model + method for auto-updating payment status.
+    | Example: 'booking_id' => ['model' => \App\Models\Booking::class, 'method' => 'markAsPaid']
+    | The model must have a method that accepts (sessionId, paymentIntentId)
+    */
+    'payable_handlers' => [],
+
+    /*
+    |--------------------------------------------------------------------------
     | Webhook Route
     |--------------------------------------------------------------------------
     */

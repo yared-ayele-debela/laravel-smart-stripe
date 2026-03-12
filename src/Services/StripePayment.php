@@ -172,6 +172,46 @@ class StripePayment
         return $this->app->make(CheckoutBuilder::class);
     }
 
+    /**
+     * Retrieve a Checkout Session with expanded payment_intent.
+     * Use on success page to get session_id from query param.
+     */
+    public function retrieveCheckoutSession(string $sessionId): ?object
+    {
+        if (config('stripe-smart.simulator.enabled')) {
+            return null;
+        }
+
+        $key = config('stripe-smart.secret_key');
+        if (!$key) {
+            return null;
+        }
+
+        try {
+            $stripe = new StripeClient($key);
+            return $stripe->checkout->sessions->retrieve($sessionId, [
+                'expand' => ['payment_intent'],
+            ]);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Get metadata from session as array (works with Stripe object or array).
+     */
+    public static function getSessionMetadata(object $session): array
+    {
+        $metadata = $session->metadata ?? null;
+        if (!$metadata) {
+            return [];
+        }
+        if (is_array($metadata)) {
+            return $metadata;
+        }
+        return method_exists($metadata, 'toArray') ? $metadata->toArray() : [];
+    }
+
     public function subscribe(object $user): CheckoutBuilder
     {
         $builder = $this->app->make(CheckoutBuilder::class);

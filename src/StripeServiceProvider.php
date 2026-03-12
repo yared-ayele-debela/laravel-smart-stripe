@@ -39,8 +39,10 @@ class StripeServiceProvider extends ServiceProvider
     {
         $this->app->booted(function () {
             $handler = $this->app->make(WebhookHandler::class);
-            $listeners = config('stripe-smart.webhook_listeners', []);
 
+            $handler->listen('checkout.session.completed', [$this, 'handleCheckoutCompleted']);
+
+            $listeners = config('stripe-smart.webhook_listeners', []);
             foreach ($listeners as $event => $callback) {
                 if (is_string($callback) && class_exists($callback)) {
                     $handler->listen($event, fn ($e) => $this->app->make($callback)->handle($e));
@@ -49,6 +51,39 @@ class StripeServiceProvider extends ServiceProvider
                 }
             }
         });
+    }
+
+    public function handleCheckoutCompleted($event): void
+    {
+        $session = $event->data->object;
+        $metadata = $session->metadata ?? null;
+        $metaArray = $metadata && method_exists($metadata, 'toArray') ? $metadata->toArray() : [];
+        $sessionId = $session->id ?? null;
+        $pi = $session->payment_intent ?? null;
+        $paymentIntentId = is_string($pi) ? $pi : ($pi->id ?? null);
+
+        event(new \Yared\SmartStripe\Events\CheckoutCompleted(
+            $sessionId,
+            $paymentIntentId,
+            $session,
+            $metaArray
+        ));
+
+        $handlers = config('stripe-smart.payable_handlers', []);
+        foreach ($handlers as $metadataKey => $config) {
+            $id = $metaArray[$metadataKey] ?? null;
+            if (!$id || !isset($config['model'], $config['method'])) {
+                continue;
+            }
+            $model = $config['model']::find($id);
+            if (!$model || !method_exists($model, $config['method'])) {
+                continue;
+            }
+            if ($model instanceof \Yared\SmartStripe\Contracts\Payable && $model->isPaid()) {
+                continue;
+            }
+            $model->{$config['method']}($sessionId, $paymentIntentId);
+        }
     }
 
     public function boot(): void

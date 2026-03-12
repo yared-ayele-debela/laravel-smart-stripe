@@ -67,7 +67,7 @@ class CheckoutBuilder
 
     public function success(string $url): self
     {
-        $this->successUrl = $url;
+        $this->successUrl = $this->ensureSessionIdPlaceholder($url);
         return $this;
     }
 
@@ -75,6 +75,18 @@ class CheckoutBuilder
     {
         $this->cancelUrl = $url;
         return $this;
+    }
+
+    /**
+     * Ensure success URL includes {CHECKOUT_SESSION_ID} so Stripe passes session_id on redirect.
+     */
+    protected function ensureSessionIdPlaceholder(string $url): string
+    {
+        if (str_contains($url, '{CHECKOUT_SESSION_ID}')) {
+            return $url;
+        }
+        $separator = str_contains($url, '?') ? '&' : '?';
+        return rtrim($url, '?&') . $separator . 'session_id={CHECKOUT_SESSION_ID}';
     }
 
     public function customer(object $user): self
@@ -100,18 +112,22 @@ class CheckoutBuilder
         return $this->redirect();
     }
 
-    public function createSession(): Session|object
+    public function createSession(): Session|\stdClass
     {
         if (config('stripe-smart.simulator.enabled')) {
             return $this->simulateSession();
         }
 
         $lineItems = $this->buildLineItems();
+        $defaultSuccess = config('stripe-smart.checkout.success_url') ?: url('/success');
+        $successUrl = $this->successUrl ?: $this->ensureSessionIdPlaceholder($defaultSuccess);
+        $cancelUrl = $this->cancelUrl ?: (config('stripe-smart.checkout.cancel_url') ?: url('/cancel'));
+
         $params = [
             'mode' => $this->mode,
             'line_items' => $lineItems,
-            'success_url' => $this->successUrl ?: url('/success'),
-            'cancel_url' => $this->cancelUrl ?: url('/cancel'),
+            'success_url' => $successUrl,
+            'cancel_url' => $cancelUrl,
             'metadata' => $this->metadata,
         ];
 
@@ -152,7 +168,7 @@ class CheckoutBuilder
         ]];
     }
 
-    protected function simulateSession(): object
+    protected function simulateSession(): \stdClass
     {
         $session = new \stdClass;
         $session->id = 'cs_sim_' . uniqid();

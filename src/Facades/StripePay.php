@@ -15,6 +15,7 @@ use Yared\SmartStripe\Services\StripePayment;
  * @method static array simulateSuccess()
  * @method static void simulateFailure()
  * @method static object simulateRefund()
+ * @method static object|null retrieveCheckoutSession(string $sessionId)
  *
  * @see \Yared\SmartStripe\Services\StripePayment
  */

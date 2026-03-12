@@ -78,6 +78,8 @@ StripePay::charge(1000)
 
 ### Stripe Checkout
 
+The success URL automatically includes `{CHECKOUT_SESSION_ID}` so Stripe passes the session ID on redirect.
+
 ```php
 return StripePay::checkout()
     ->product('Premium Plan')
@@ -110,6 +112,44 @@ StripePay::refund($paymentIntentId, 500); // Partial refund
 StripePay::charge(2000)
     ->customer($user)
     ->queue();
+```
+
+### Auto-Update Payment Status (Payable Handlers)
+
+Add to `config/stripe-smart.php` to automatically update models when checkout completes:
+
+```php
+'payable_handlers' => [
+    'booking_id' => [
+        'model' => \App\Models\Booking::class,
+        'method' => 'markAsPaid',
+    ],
+    'order_id' => [
+        'model' => \App\Models\Order::class,
+        'method' => 'markAsPaid',
+    ],
+],
+```
+
+Your model must have a `markAsPaid($sessionId, $paymentIntentId)` method. Include the metadata key (e.g. `booking_id`) when creating checkout:
+
+```php
+StripePay::checkout()
+    ->product('Hotel Booking')
+    ->price(1999)
+    ->metadata(['booking_id' => $booking->id])
+    ->success('/success')
+    ->redirect();
+```
+
+### Success Page Helper
+
+On your success page, retrieve the session and metadata:
+
+```php
+$session = StripePay::retrieveCheckoutSession($request->query('session_id'));
+$metadata = StripePayment::getSessionMetadata($session);
+$bookingId = $metadata['booking_id'] ?? null;
 ```
 
 ### Webhook Listeners
